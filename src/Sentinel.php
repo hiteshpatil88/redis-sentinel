@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Created by PhpStorm.
  * User: Jenner
@@ -8,8 +9,8 @@
 
 namespace Jenner\RedisSentinel;
 
-class Sentinel
-{
+class Sentinel {
+
     /**
      * @var \Redis
      */
@@ -20,17 +21,16 @@ class Sentinel
      */
     protected $timeout;
 
-    public function __construct($timeout = null)
-    {
+    public function __construct($timeout = null) {
         $this->redis = new \Redis();
         $this->timeout = $timeout === null ? 0.0 : $timeout;
     }
 
-    public function __destruct()
-    {
+    public function __destruct() {
         try {
             $this->redis->close();
         } catch (\Exception $e) {
+            
         }
     }
 
@@ -40,9 +40,20 @@ class Sentinel
      * @param float $timeout connect timeout in seconds
      * @return boolean
      */
-    public function connect($host, $port = 26379, $timeout = null)
-    {
+    public function connect($host, $port = 26379, $timeout = null) {
         if (!$this->redis->connect($host, $port, $timeout === null ? $this->timeout : $timeout)) {
+            return false;
+        }
+
+        return true;
+    }
+
+    /**
+     * @param $auth
+     * @return boolean
+     */
+    public function auth($auth) {
+        if (!$this->redis->auth($auth)) {
             return false;
         }
 
@@ -54,8 +65,7 @@ class Sentinel
      *
      * @return string STRING: +PONG on success. Throws a RedisException object on connectivity error.
      */
-    public function ping()
-    {
+    public function ping() {
         return $this->redis->ping();
     }
 
@@ -64,8 +74,7 @@ class Sentinel
      *
      * @return array
      */
-    public function masters()
-    {
+    public function masters() {
         return $this->parseArrayResult($this->redis->rawCommand('SENTINEL', 'masters'));
     }
 
@@ -75,8 +84,7 @@ class Sentinel
      * @param array $data
      * @return array
      */
-    private function parseArrayResult(array $data)
-    {
+    private function parseArrayResult(array $data) {
         $result = array();
         $count = count($data);
         for ($i = 0; $i < $count;) {
@@ -99,9 +107,18 @@ class Sentinel
      * @param string $master_name
      * @return array
      */
-    public function master($master_name)
-    {
+    public function master($master_name) {
         return $this->parseArrayResult($this->redis->rawCommand('SENTINEL', 'master', $master_name));
+    }
+
+    /**
+     * Show the state and info of the specified master.
+     *
+     * @param string $master_name
+     * @return array
+     */
+    public function getMasterDetails() {
+        return $this->parseArrayResult($this->redis->rawCommand('SENTINEL', 'masters'));
     }
 
     /**
@@ -110,8 +127,7 @@ class Sentinel
      * @param string $master_name
      * @return array
      */
-    public function slaves($master_name)
-    {
+    public function slaves($master_name) {
         return $this->parseArrayResult($this->redis->rawCommand('SENTINEL', 'slaves', $master_name));
     }
 
@@ -121,8 +137,7 @@ class Sentinel
      * @param string $master_name
      * @return array
      */
-    public function sentinels($master_name)
-    {
+    public function sentinels($master_name) {
         return $this->parseArrayResult($this->redis->rawCommand('SENTINEL', 'sentinels', $master_name));
     }
 
@@ -134,8 +149,7 @@ class Sentinel
      * @param string $master_name
      * @return array
      */
-    public function getMasterAddrByName($master_name)
-    {
+    public function getMasterAddrByName($master_name) {
         $data = $this->redis->rawCommand('SENTINEL', 'get-master-addr-by-name', $master_name);
         return array(
             'ip' => $data[0],
@@ -153,8 +167,7 @@ class Sentinel
      * @param string $pattern
      * @return int
      */
-    public function reset($pattern)
-    {
+    public function reset($pattern) {
         return $this->redis->rawCommand('SENTINEL', 'reset', $pattern);
     }
 
@@ -167,8 +180,7 @@ class Sentinel
      * @param string $master_name
      * @return boolean
      */
-    public function failOver($master_name)
-    {
+    public function failOver($master_name) {
         return $this->redis->rawCommand('SENTINEL', 'failover', $master_name) === 'OK';
     }
 
@@ -176,8 +188,7 @@ class Sentinel
      * @param string $master_name
      * @return boolean
      */
-    public function ckquorum($master_name)
-    {
+    public function ckquorum($master_name) {
         return $this->checkQuorum($master_name);
     }
 
@@ -190,8 +201,7 @@ class Sentinel
      * @param string $master_name
      * @return boolean
      */
-    public function checkQuorum($master_name)
-    {
+    public function checkQuorum($master_name) {
         return $this->redis->rawCommand('SENTINEL', 'ckquorum', $master_name);
     }
 
@@ -207,8 +217,7 @@ class Sentinel
      *
      * @return boolean
      */
-    public function flushConfig()
-    {
+    public function flushConfig() {
         return $this->redis->rawCommand('SENTINEL', 'flushconfig');
     }
 
@@ -224,8 +233,7 @@ class Sentinel
      * @param $quorum
      * @return boolean
      */
-    public function monitor($master_name, $ip, $port, $quorum)
-    {
+    public function monitor($master_name, $ip, $port, $quorum) {
         return $this->redis->rawCommand('SENTINEL', 'monitor', $master_name, $ip, $port, $quorum);
     }
 
@@ -237,8 +245,7 @@ class Sentinel
      * @param $master_name
      * @return boolean
      */
-    public function remove($master_name)
-    {
+    public function remove($master_name) {
         return $this->redis->rawCommand('SENTINEL', 'remove', $master_name);
     }
 
@@ -254,8 +261,7 @@ class Sentinel
      * @param $value
      * @return boolean
      */
-    public function set($master_name, $option, $value)
-    {
+    public function set($master_name, $option, $value) {
         return $this->redis->rawCommand('SENTINEL', 'set', $master_name, $option, $value);
     }
 
@@ -264,8 +270,7 @@ class Sentinel
      *
      * @return string
      */
-    public function getLastError()
-    {
+    public function getLastError() {
         return $this->redis->getLastError();
     }
 
@@ -274,8 +279,7 @@ class Sentinel
      *
      * @return boolean
      */
-    public function clearLastError()
-    {
+    public function clearLastError() {
         return $this->redis->clearLastError();
     }
 
@@ -284,16 +288,14 @@ class Sentinel
      *
      * @return string
      */
-    public function info()
-    {
+    public function info() {
         return $this->redis->info();
     }
 
     /**
      * @return float
      */
-    public function getTimeout()
-    {
+    public function getTimeout() {
         return $this->timeout;
     }
 
